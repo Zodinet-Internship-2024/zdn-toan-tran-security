@@ -88,11 +88,6 @@ export class AuthService {
 
   async signIn(signInDto: SignInDto) {
     const { recaptchaToken, username } = signInDto;
-    if (this.users.every((user) => user.username !== username)) {
-      return new NotFoundException();
-    }
-
-    const user = this.users.find((user) => user.username === username);
 
     const {
       success: isCaptchaSuccess,
@@ -100,8 +95,22 @@ export class AuthService {
       message,
     } = await this.checkRecaptchaToken(recaptchaToken);
 
+    if (!isCaptchaSuccess) {
+      return new UnauthorizedException('Captcha Verification failed');
+    }
+
+    const user = this.users.find((user) => user.username === username);
+
+    if (!user) {
+      return new NotFoundException('User not found');
+    }
+
+    if (user.password !== signInDto.password) {
+      return new UnauthorizedException('Wrong password');
+    }
+
     return {
-      isCaptchaSuccess,
+      success: true,
       score,
       message,
       username: user.username,
