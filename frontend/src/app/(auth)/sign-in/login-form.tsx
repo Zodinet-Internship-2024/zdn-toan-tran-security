@@ -1,4 +1,7 @@
 'use client';
+import authApi from '@/app/api/auth';
+import AuthApi from '@/app/api/auth';
+import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
@@ -6,7 +9,8 @@ const LoginForm = () => {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [captcha, setCaptcha] = useState('');
+  const [message, setMessage] = useState('');
+  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -17,7 +21,16 @@ const LoginForm = () => {
 
     const recaptchaToken = await executeRecaptcha('login');
 
-    console.log(recaptchaToken);
+    try {
+      const res = await authApi.login(username, password, recaptchaToken);
+
+      if (res?.isCaptchaSuccess) {
+        router.push(`/two-fa?username=${username}`);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setMessage(error.message);
+    }
   };
   return (
     <div className="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
@@ -80,7 +93,6 @@ const LoginForm = () => {
               />
             </div>
           </div>
-
           <div>
             <button
               type="submit"
@@ -89,6 +101,7 @@ const LoginForm = () => {
               Sign in
             </button>
           </div>
+          <p className="text-lg font-semibold mt-2">{message}</p>
         </form>
       </div>
     </div>
